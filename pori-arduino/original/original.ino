@@ -8,8 +8,8 @@ const int ACCY = A1;
 const int ACCZ = A0;
 
 LiquidCrystal lcd(4,5,6,8,9,10,11);
-int angX;
-int angY;
+int angX, angY;
+int angX1, angY1 = 0;
 int x, y, z;
 Servo food; 
 
@@ -39,11 +39,13 @@ void setup() {
 }
 
 void loop() {
-  lcd.clear();
+  //lcd.clear();
   ang();
+  crush();
   message(2,1,"5");
   Serial.print(readDistance());
   Serial.println("cm");
   //Servo90();
-  
+  angX1 = angX;
+  angY1 = angY;
 }

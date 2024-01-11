@@ -32,3 +32,15 @@ void ang(){
   Serial.print(" Z:");
   Serial.println(z);
 }
+
+int crush(){
+  if(abs(angX - angX1) > 5 and abs(angY - angY1) > 5){
+    lcd.clear();
+    message(1,0,"crush");
+    return 1;
+  }else{
+    lcd.clear();
+    message(1,0,"holi");
+    return 0;
+  }
+}
