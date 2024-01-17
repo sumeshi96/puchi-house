@@ -21,6 +21,7 @@ void ang(){
   angX = (x - 296) / 2.61 - 90;
   angY = (y - 264) / 2.57 - 90;
 
+  /*
   Serial.print("X:");
   Serial.print(x);
   Serial.print(" ") ;
@@ -31,6 +32,7 @@ void ang(){
   Serial.print(angY) ;
   Serial.print(" Z:");
   Serial.println(z);
+  */
 }
 
 int crush(){

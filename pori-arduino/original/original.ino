@@ -3,9 +3,21 @@
 #include <LiquidCrystal.h>
 #include <Servo.h>
 
+// I2C用
+#define SUMESHI 8
+#difine RASPI 0x08
+
+// 照度センサ識別用
+int isLight = 0;
+
+// Raspiパッシング用
+int isCap = 0;
+
+// 加速度センサ用
 const int ACCX = A2;
 const int ACCY = A1;
 const int ACCZ = A0;
+
 
 LiquidCrystal lcd(4,5,6,8,9,10,11);
 int angX, angY;
@@ -14,7 +26,6 @@ int x, y, z;
 Servo food; 
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(9600);
   pinMode(13, OUTPUT);
   pinMode(3, OUTPUT);
@@ -35,6 +46,9 @@ void setup() {
   food.attach(3);
   food.write(0);
 
+  // I2C用
+  Wire.begin();
+
   delay(500);
 }
 
@@ -42,10 +56,66 @@ void loop() {
   //lcd.clear();
   ang();
   crush();
-  message(2,1,"5");
-  Serial.print(readDistance());
-  Serial.println("cm");
-  //Servo90();
+  //Serial.print(readDistance());
+  //Serial.println("cm");
+
+  connectSumeshi();
+  connectRaspi();
+
+  // 照度センサが反応したら
+  if(isLight){
+    Servo90();
+  }
+
   angX1 = angX;
   angY1 = angY;
+}
+
+// sumeshi-arduinoと通信する
+connectSumeshi(){
+  // 送られてきたデータ保管用　”XX.X XX.X X”
+  Stirng sumeshiData = "";
+  
+  // sumeshi-arduinoにデータをリクエスト
+  Wire.requestFrom(SUMESHI,11)
+  
+  // 送るデータが無くなるまで実行
+  while(Wire.available()){
+    // 送られてきたデータを読み込み
+    char receiveData = Wire.read();
+    sumeshiData += receiveData;
+  }
+
+  // ここからはパース
+  char buf[32];
+  sumeshiData.toCharArray(buf, sizeof(buf));
+
+  char* part = strtok(buf, " ");
+  float temp = atof(part);  // 温度
+  part = strtok(NULL, " ");
+  float humid = atof(part);  // 湿度
+  part = strtok(NULL, " ");
+  int isLight = atoi(part);  // 照度
+
+  String displayTemp = "Temp: " + String(temp);
+  String dispalyHumid" Humid: " + String(humid);
+  
+  // LCDに温度と湿度を表示
+  message(1,1,displayTemp);
+  message(1,2,displayHumid);
+  
+  //Serial.println("Light: " + String(isLight));
+
+  // セッションを終了　これをしないと接続先切り替えられない
+  Wire.endTransmission(false);
+}
+
+// raspiと通信する
+connectRaspi(){
+  // セッションを開始
+  Wire.beginTransmission(RASPI);
+  // 加速度か、赤外線が反応したらパッシング
+  Wire.Write(isCap ? 1 : 0);
+  // セッションを終了
+  Wire.endTransmission();
 }
