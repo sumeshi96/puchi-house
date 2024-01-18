@@ -41,8 +41,8 @@ int crush(){
     message(1,0,"crush");
     return 1;
   }else{
-    lcd.clear();
-    message(1,0,"holi");
+    //lcd.clear();
+    //message(1,0,"holi");
     return 0;
   }
 }

@@ -5,25 +5,25 @@
 
 // I2C用
 #define SUMESHI 8
-#difine RASPI 0x08
+#define RASPI 0x08
 
 // 照度センサ識別用
-int isLight = 0;
+int isLight = -1;
+int lastIsLight = -1;
 
 // Raspiパッシング用
-int isCap = 0;
+boolean isCap = false;
 
 // 加速度センサ用
 const int ACCX = A2;
 const int ACCY = A1;
 const int ACCZ = A0;
 
-
-LiquidCrystal lcd(4,5,6,8,9,10,11);
+LiquidCrystal lcd(4, 5, 6, 8, 9, 10, 11);
 int angX, angY;
 int angX1, angY1 = 0;
 int x, y, z;
-Servo food; 
+Servo food;
 
 void setup() {
   Serial.begin(9600);
@@ -32,7 +32,7 @@ void setup() {
   pinMode(10, OUTPUT);
   pinMode(7, OUTPUT);
   pinMode(8, OUTPUT);
-  
+
   pinMode(12, OUTPUT);
   pinMode(11, OUTPUT);
   pinMode(2, OUTPUT);
@@ -55,32 +55,36 @@ void setup() {
 void loop() {
   //lcd.clear();
   ang();
-  crush();
-  //Serial.print(readDistance());
-  //Serial.println("cm");
 
-  connectSumeshi();
-  connectRaspi();
+
 
   // 照度センサが反応したら
-  if(isLight){
+  if (isLight != lastIsLight) {
     Servo90();
+    lastIsLight = isLight;
   }
+
+  // 距離センサが30以下になったらカメラ
+  if (readDistance() < 30 || crush() == 1) {
+    connectRaspi();
+  }
+  connectSumeshi();
+
 
   angX1 = angX;
   angY1 = angY;
 }
 
 // sumeshi-arduinoと通信する
-connectSumeshi(){
+void connectSumeshi() {
   // 送られてきたデータ保管用　”XX.X XX.X X”
-  Stirng sumeshiData = "";
-  
+  String sumeshiData = "";
+
   // sumeshi-arduinoにデータをリクエスト
-  Wire.requestFrom(SUMESHI,11)
-  
+  Wire.requestFrom(SUMESHI, 11);
+
   // 送るデータが無くなるまで実行
-  while(Wire.available()){
+  while (Wire.available()) {
     // 送られてきたデータを読み込み
     char receiveData = Wire.read();
     sumeshiData += receiveData;
@@ -95,15 +99,15 @@ connectSumeshi(){
   part = strtok(NULL, " ");
   float humid = atof(part);  // 湿度
   part = strtok(NULL, " ");
-  int isLight = atoi(part);  // 照度
+  isLight = atoi(part);  // 照度
 
-  String displayTemp = "Temp: " + String(temp);
-  String dispalyHumid" Humid: " + String(humid);
-  
+  String displayTemp = "Temp : " + String(temp);
+  String displayHumid = " Humid: " + String(humid);
+
   // LCDに温度と湿度を表示
-  message(1,1,displayTemp);
-  message(1,2,displayHumid);
-  
+  message(1, 0, displayTemp);
+  message(0, 1, displayHumid);
+
   //Serial.println("Light: " + String(isLight));
 
   // セッションを終了　これをしないと接続先切り替えられない
@@ -111,11 +115,11 @@ connectSumeshi(){
 }
 
 // raspiと通信する
-connectRaspi(){
+void connectRaspi() {
   // セッションを開始
   Wire.beginTransmission(RASPI);
   // 加速度か、赤外線が反応したらパッシング
-  Wire.Write(isCap ? 1 : 0);
+  Wire.write(1);
   // セッションを終了
   Wire.endTransmission();
 }

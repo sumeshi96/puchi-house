@@ -1,4 +1,5 @@
 #include "DHT.h"
+#include "Wire.h"
 
 #define LED_R 5
 #define LED_G 9
@@ -23,6 +24,9 @@ bool playFlag = false;
 
 //照度センサ用
 int lightValue = 0;
+int isLight = 0;
+
+String tempInfo = "";
 
 // 音楽鳴らす用変数
 //                        ド1 レ2   ミ3  ファ4 ソ5  ラ6  シ7  ド8
@@ -98,33 +102,35 @@ void playMusic() {
 }
 
 // 温湿度を取得し、シリアルモニタに出力する
-String getTempInfo() {
+void getTempInfo() {
   delay(2000);
   float humid = dht.readHumidity();
   float temp = dht.readTemperature();
 
-  if (isnan(humid) || isnan(temp)) {
-    return "Failed to read from DHT sensor!";
-  }
+  //if (isnan(humid) || isnan(temp)) {
+  //  return "Failed to read from DHT sensor!";
+  //}
 
-  return String(temp, 1) + "," + String(humid, 1);
+  tempInfo = String(temp, 1) + " " + String(humid, 1);
 }
 
 void changePlayFlag() {
   playFlag = !playFlag;
 }
 
-String getLightInfo() {
+void getLightInfo() {
   lightValue = analogRead(photoresisterPIN);
 
+  Serial.print(lightValue);
   if (lightValue < 100) {
     digitalWrite(REDLED, HIGH);
     digitalWrite(BLUELED, LOW);
+    isLight = 1;
   } else {
     digitalWrite(BLUELED, HIGH);
     digitalWrite(REDLED, LOW);
+    isLight = 0;
   }
-  return String(lightValue);
 }
 
 void setup() {
@@ -134,11 +140,14 @@ void setup() {
   pinMode(SWITCH, INPUT_PULLUP);
   attachInterrupt(0, changePlayFlag, RISING);
 
+  // I2C用
+  Wire.begin(8);
+  Wire.onRequest(sendSumeshiData);
+
   Serial.begin(9600);
 
-  // dht11用
-
   Serial.println(F("DHT11 start!"));
+  // dht11
   dht.begin();
 }
 
@@ -149,6 +158,14 @@ void loop() {
     changePlayFlag();
     playMusic();
   }
-  Serial.println(getTempInfo());
-  Serial.println(getLightInfo());
+  getTempInfo();
+  getLightInfo();
+  delay(100);
+}
+
+// Masterからのリクエストで温湿度と照度センサの値送信
+void sendSumeshiData() {
+  String sendData = tempInfo + " " + isLight;
+  Serial.println(sendData);
+  Wire.write(sendData.c_str());
 }
